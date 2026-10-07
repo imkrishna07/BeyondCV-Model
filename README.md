@@ -1,6 +1,3 @@
-Yeah bro — you want a **clean GitHub README**, not a huge documentation dump.
-
-Just **copy-paste this entire thing directly into `README.md`**:
 
 ```markdown
 # BeyondCV Model
