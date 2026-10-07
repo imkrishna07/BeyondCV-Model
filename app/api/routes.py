@@ -16,8 +16,11 @@ from app.analyzers.github.analyzer import (
     GitHubRateLimitError,
     analyze_github_username,
 )
+from app.analyzers.coding.analyzer import analyze_coding_profiles
+from app.analyzers.coding.errors import InvalidCodingUsername
 from app.schemas.health import HealthResponse
 from app.schemas.github import GitHubAnalysisRequest, GitHubAnalysisResponse
+from app.schemas.coding import CodingAnalysisRequest, CodingAnalysisResponse
 from app.schemas.project import ProjectAnalysisResponse
 from app.schemas.resume import ResumeAnalysisResponse
 from app.analyzers.resume.extractor import (
@@ -83,3 +86,15 @@ def analyze_github(request: GitHubAnalysisRequest) -> GitHubAnalysisResponse:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except GitHubAPIError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.post("/analyze-coding", response_model=CodingAnalysisResponse, tags=["coding"])
+def analyze_coding(request: CodingAnalysisRequest) -> CodingAnalysisResponse:
+    """Analyze competitive-programming evidence from LeetCode and/or Codeforces."""
+    try:
+        return analyze_coding_profiles(
+            leetcode_username=request.leetcode_username,
+            codeforces_username=request.codeforces_username,
+        )
+    except InvalidCodingUsername as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
