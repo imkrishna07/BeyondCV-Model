@@ -38,6 +38,8 @@ from app.analyzers.certifications.analyzer import analyze_certifications
 from app.schemas.certifications import CertificationAnalysisRequest, CertificationAnalysisResponse
 from app.analyzers.achievements.analyzer import analyze_achievements
 from app.schemas.achievements import AchievementAnalysisRequest, AchievementAnalysisResponse
+from app.ranking.feature_aggregator import aggregate_candidate
+from app.ranking.schemas import CandidateAnalysisInputs, CandidateFeatureVector
 from app.analyzers.resume.extractor import (
     EmptyResume,
     InvalidResumePDF,
@@ -148,3 +150,9 @@ def analyze_certifications_route(request: CertificationAnalysisRequest) -> Certi
 def analyze_achievements_route(request: AchievementAnalysisRequest) -> AchievementAnalysisResponse:
     """Classify candidate-supplied competition and achievement outcomes as evidence."""
     return analyze_achievements(request)
+
+
+@router.post("/aggregate-candidate", response_model=CandidateFeatureVector, tags=["feature aggregation"])
+def aggregate_candidate_route(request: CandidateAnalysisInputs) -> CandidateFeatureVector:
+    """Combine supplied analyzer responses into a normalized, evidence-linked feature vector."""
+    return aggregate_candidate(request)
