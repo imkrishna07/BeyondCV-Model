@@ -34,6 +34,10 @@ from app.analyzers.kaggle.analyzer import (
 from app.schemas.kaggle import KaggleAnalysisRequest, KaggleAnalysisResponse
 from app.analyzers.research.analyzer import analyze_research
 from app.schemas.research import ResearchAnalysisRequest, ResearchAnalysisResponse
+from app.analyzers.certifications.analyzer import analyze_certifications
+from app.schemas.certifications import CertificationAnalysisRequest, CertificationAnalysisResponse
+from app.analyzers.achievements.analyzer import analyze_achievements
+from app.schemas.achievements import AchievementAnalysisRequest, AchievementAnalysisResponse
 from app.analyzers.resume.extractor import (
     EmptyResume,
     InvalidResumePDF,
@@ -132,3 +136,15 @@ def analyze_kaggle(request: KaggleAnalysisRequest) -> KaggleAnalysisResponse:
 def analyze_research_route(request: ResearchAnalysisRequest) -> ResearchAnalysisResponse:
     """Structure and assess evidence completeness for candidate-supplied research."""
     return analyze_research(request)
+
+
+@router.post("/analyze-certifications", response_model=CertificationAnalysisResponse, tags=["certifications"])
+def analyze_certifications_route(request: CertificationAnalysisRequest) -> CertificationAnalysisResponse:
+    """Normalize candidate-supplied certifications and optionally compare them to job text."""
+    return analyze_certifications(request)
+
+
+@router.post("/analyze-achievements", response_model=AchievementAnalysisResponse, tags=["achievements"])
+def analyze_achievements_route(request: AchievementAnalysisRequest) -> AchievementAnalysisResponse:
+    """Classify candidate-supplied competition and achievement outcomes as evidence."""
+    return analyze_achievements(request)
