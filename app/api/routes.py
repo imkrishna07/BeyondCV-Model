@@ -9,7 +9,15 @@ from app.analyzers.project.file_scanner import (
     InvalidProjectArchive,
     ProjectTooLarge,
 )
+from app.analyzers.github.analyzer import (
+    GitHubAPIError,
+    GitHubNetworkError,
+    GitHubProfileNotFound,
+    GitHubRateLimitError,
+    analyze_github_username,
+)
 from app.schemas.health import HealthResponse
+from app.schemas.github import GitHubAnalysisRequest, GitHubAnalysisResponse
 from app.schemas.project import ProjectAnalysisResponse
 from app.schemas.resume import ResumeAnalysisResponse
 from app.analyzers.resume.extractor import (
@@ -60,3 +68,18 @@ async def analyze_project(file: UploadFile = File(..., description="ZIP archive 
         raise HTTPException(status_code=413, detail=str(exc)) from exc
     finally:
         await file.close()
+
+
+@router.post("/analyze-github", response_model=GitHubAnalysisResponse, tags=["github"])
+def analyze_github(request: GitHubAnalysisRequest) -> GitHubAnalysisResponse:
+    """Analyze public GitHub profile evidence without treating popularity as ability."""
+    try:
+        return analyze_github_username(request.username)
+    except GitHubProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except GitHubRateLimitError as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except GitHubNetworkError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except GitHubAPIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
