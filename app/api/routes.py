@@ -42,6 +42,8 @@ from app.ranking.feature_aggregator import aggregate_candidate
 from app.ranking.schemas import CandidateAnalysisInputs, CandidateFeatureVector
 from app.analyzers.job.analyzer import analyze_job_description
 from app.schemas.job import JobAnalysisRequest, JobAnalysisResponse
+from app.ranking.ranker import rank_candidates
+from app.ranking.ranking_schemas import RankCandidatesRequest, RankCandidatesResponse
 from app.analyzers.resume.extractor import (
     EmptyResume,
     InvalidResumePDF,
@@ -164,3 +166,9 @@ def aggregate_candidate_route(request: CandidateAnalysisInputs) -> CandidateFeat
 def analyze_job_route(request: JobAnalysisRequest) -> JobAnalysisResponse:
     """Convert a job description into structured requirements without ranking candidates."""
     return analyze_job_description(request)
+
+
+@router.post("/rank-candidates", response_model=RankCandidatesResponse, tags=["ranking"])
+def rank_candidates_route(request: RankCandidatesRequest) -> RankCandidatesResponse:
+    """Rank candidate evidence for the supplied job requirements with transparent weights."""
+    return rank_candidates(request)
