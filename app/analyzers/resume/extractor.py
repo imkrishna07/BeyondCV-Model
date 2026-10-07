@@ -41,9 +41,15 @@ SECTION_ALIASES: dict[str, tuple[str, ...]] = {
     ),
     "projects": ("projects", "selected projects", "personal projects"),
     "certifications": ("certifications", "certificates", "licenses and certifications"),
-    "achievements": ("achievements", "awards", "honors", "honours", "competitions"),
+    "achievements": (
+        "achievements", "awards", "honors", "honours", "competitions",
+        "open source contributions", "open-source contributions",
+    ),
     "research": (
-        "research", "research experience", "publications", "research and publications",
+        "research", "research experience", "research publications", "research and publications",
+        "research & publications", "technical research", "security research",
+        "security research and publications", "security research & publications",
+        "publications", "publication", "technical publications",
     ),
 }
 
@@ -76,25 +82,81 @@ def _normalize_header(line: str) -> str:
     return re.sub(r"[^a-z0-9 ]", "", line.lower()).strip()
 
 
+_RESEARCH_CONTENT_TERMS = re.compile(
+    r"\b(research|publication|published|paper|write[- ]?up|study|studied|investigation|"
+    r"investigated|security analysis|vulnerability analysis|responsible vulnerability disclosures?|"
+    r"responsible disclosure)\b", re.I
+)
+_ACHIEVEMENT_CONTENT_TERMS = re.compile(
+    r"\b(award|winner|finalist|ranked|medal|competition|achievement|contribut(?:e|ed|ion|ions)|"
+    r"achievements|open[- ]source|public speaking|speaker|presented|presentation|maintainer|"
+    r"cve\s*(?:credit|credits)|credited)\b", re.I
+)
+
+
+def _heading_categories(line: str) -> set[str] | None:
+    """Recognize plain or compound section headings without matching prose sentences."""
+    candidate = line.strip().rstrip(":").strip()
+    if len(candidate.split()) > 14 or re.search(r"[.!?]", candidate):
+        return None
+    normalized = _normalize_header(candidate)
+    exact = _HEADER_LOOKUP.get(normalized)
+    if exact:
+        return {exact}
+
+    categories: set[str] = set()
+    if re.search(r"\b(research|publication|publications)\b", normalized):
+        categories.add("research")
+    if re.search(
+        r"\b(achievement|achievements|award|awards|honor|honors|honour|honours|"
+        r"competition|competitions|contribution|contributions)\b|public speaking|open source",
+        normalized,
+    ):
+        categories.add("achievements")
+    # A compound title may include a known section alongside research/achievement concepts.
+    for section, aliases in SECTION_ALIASES.items():
+        if section in {"research", "achievements"}:
+            continue
+        for alias in aliases:
+            alias_normalized = _normalize_header(alias)
+            if re.search(rf"\b{re.escape(alias_normalized)}\b", normalized):
+                categories.add(section)
+                break
+    return categories or None
+
+
+def _route_compound_section_line(line: str, categories: set[str]) -> set[str]:
+    """Use line evidence to route content under headings that name multiple categories."""
+    if len(categories) == 1:
+        return categories
+    matched: set[str] = set()
+    if "research" in categories and _RESEARCH_CONTENT_TERMS.search(line):
+        matched.add("research")
+    if "achievements" in categories and _ACHIEVEMENT_CONTENT_TERMS.search(line):
+        matched.add("achievements")
+    # Do not duplicate ambiguous lines across categories; leave them uncategorized.
+    return matched
+
+
 def _section_lines(text: str) -> dict[str, list[str]]:
     sections = {name: [] for name in SECTION_ALIASES}
-    current: str | None = None
+    current: set[str] | None = None
 
     for raw_line in text.splitlines():
         line = raw_line.strip()
         if not line:
             continue
 
-        # A heading may be alone or followed by a colon. Avoid treating arbitrary
-        # prose as a heading by requiring a complete alias match.
-        header = _normalize_header(line.rstrip(":"))
-        matched = _HEADER_LOOKUP.get(header)
+        # Headings may be plain aliases or compound category titles. Boundaries
+        # and sentence checks prevent ordinary descriptive prose from becoming a heading.
+        matched = _heading_categories(line)
         if matched:
             current = matched
             continue
 
         if current is not None:
-            sections[current].append(line)
+            for category in _route_compound_section_line(line, current):
+                sections[category].append(line)
 
     return sections
 
