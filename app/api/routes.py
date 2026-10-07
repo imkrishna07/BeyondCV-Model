@@ -23,6 +23,17 @@ from app.schemas.github import GitHubAnalysisRequest, GitHubAnalysisResponse
 from app.schemas.coding import CodingAnalysisRequest, CodingAnalysisResponse
 from app.schemas.project import ProjectAnalysisResponse
 from app.schemas.resume import ResumeAnalysisResponse
+from app.analyzers.kaggle.analyzer import (
+    KaggleAPIError,
+    KaggleNetworkError,
+    KaggleProfileNotFound,
+    KaggleRateLimitError,
+    InvalidKaggleUsername,
+    analyze_kaggle_username,
+)
+from app.schemas.kaggle import KaggleAnalysisRequest, KaggleAnalysisResponse
+from app.analyzers.research.analyzer import analyze_research
+from app.schemas.research import ResearchAnalysisRequest, ResearchAnalysisResponse
 from app.analyzers.resume.extractor import (
     EmptyResume,
     InvalidResumePDF,
@@ -98,3 +109,26 @@ def analyze_coding(request: CodingAnalysisRequest) -> CodingAnalysisResponse:
         )
     except InvalidCodingUsername as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/analyze-kaggle", response_model=KaggleAnalysisResponse, tags=["kaggle"])
+def analyze_kaggle(request: KaggleAnalysisRequest) -> KaggleAnalysisResponse:
+    """Collect bounded Kaggle notebook and dataset evidence for a username."""
+    try:
+        return analyze_kaggle_username(request.username)
+    except InvalidKaggleUsername as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except KaggleProfileNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except KaggleRateLimitError as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except KaggleNetworkError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except KaggleAPIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.post("/analyze-research", response_model=ResearchAnalysisResponse, tags=["research"])
+def analyze_research_route(request: ResearchAnalysisRequest) -> ResearchAnalysisResponse:
+    """Structure and assess evidence completeness for candidate-supplied research."""
+    return analyze_research(request)
