@@ -40,6 +40,8 @@ from app.analyzers.achievements.analyzer import analyze_achievements
 from app.schemas.achievements import AchievementAnalysisRequest, AchievementAnalysisResponse
 from app.ranking.feature_aggregator import aggregate_candidate
 from app.ranking.schemas import CandidateAnalysisInputs, CandidateFeatureVector
+from app.analyzers.job.analyzer import analyze_job_description
+from app.schemas.job import JobAnalysisRequest, JobAnalysisResponse
 from app.analyzers.resume.extractor import (
     EmptyResume,
     InvalidResumePDF,
@@ -156,3 +158,9 @@ def analyze_achievements_route(request: AchievementAnalysisRequest) -> Achieveme
 def aggregate_candidate_route(request: CandidateAnalysisInputs) -> CandidateFeatureVector:
     """Combine supplied analyzer responses into a normalized, evidence-linked feature vector."""
     return aggregate_candidate(request)
+
+
+@router.post("/analyze-job", response_model=JobAnalysisResponse, tags=["job description"])
+def analyze_job_route(request: JobAnalysisRequest) -> JobAnalysisResponse:
+    """Convert a job description into structured requirements without ranking candidates."""
+    return analyze_job_description(request)

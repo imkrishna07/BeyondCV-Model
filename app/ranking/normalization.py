@@ -21,6 +21,7 @@ _CANONICAL_SKILLS = {
     "postgres": "PostgreSQL",
     "postgresql": "PostgreSQL",
     "node.js": "Node.js",
+    "node": "Node.js",
     "nodejs": "Node.js",
     "react.js": "React",
     "reactjs": "React",
