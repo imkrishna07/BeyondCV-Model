@@ -3,7 +3,14 @@
 from fastapi import APIRouter
 from fastapi import File, HTTPException, UploadFile
 
+from app.analyzers.project.analyzer import analyze_project_zip
+from app.analyzers.project.file_scanner import (
+    MAX_ARCHIVE_BYTES,
+    InvalidProjectArchive,
+    ProjectTooLarge,
+)
 from app.schemas.health import HealthResponse
+from app.schemas.project import ProjectAnalysisResponse
 from app.schemas.resume import ResumeAnalysisResponse
 from app.analyzers.resume.extractor import (
     EmptyResume,
@@ -35,5 +42,21 @@ async def analyze_resume(file: UploadFile = File(..., description="PDF resume"))
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except ResumeExtractionError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+    finally:
+        await file.close()
+
+
+@router.post("/analyze-project", response_model=ProjectAnalysisResponse, tags=["project"])
+async def analyze_project(file: UploadFile = File(..., description="ZIP archive containing a project")) -> ProjectAnalysisResponse:
+    """Inspect source, documentation, and configuration in an uploaded ZIP without executing it."""
+    try:
+        archive_bytes = await file.read(MAX_ARCHIVE_BYTES + 1)
+        if len(archive_bytes) > MAX_ARCHIVE_BYTES:
+            raise HTTPException(status_code=413, detail="ZIP upload exceeds the analysis size limit.")
+        return analyze_project_zip(archive_bytes)
+    except InvalidProjectArchive as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ProjectTooLarge as exc:
+        raise HTTPException(status_code=413, detail=str(exc)) from exc
     finally:
         await file.close()
