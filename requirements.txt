@@ -36,6 +36,7 @@ Pygments==2.21.0
 PyJWT==2.15.1
 PyNaCl==1.6.2
 pypdf==6.19.0
+python-multipart==0.0.20
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.4
 PyYAML==6.0.3
